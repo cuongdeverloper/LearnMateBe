@@ -32,7 +32,7 @@ app.use(passport.session()); // Enable passport session support
 
 // Configure CORS
 app.use(cors({
-  origin: ['https://kity-shop-fe.vercel.app', 'http://localhost:6969'],
+  origin: '*',
   credentials: true,
 }));
 
