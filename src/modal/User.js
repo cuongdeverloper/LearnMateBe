@@ -10,7 +10,7 @@ const userSchema = new mongoose.Schema({
   gender: { type: String, enum: ['male', 'female', 'other'], required: function() { return !this.socialLogin; } },
   type: {
     type: String,
-    default: 'Local'
+    default: 'Local' //222
   },
   socialLogin: {
     type: Boolean,
