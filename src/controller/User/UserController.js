@@ -1,6 +1,6 @@
 const uploadCloud = require("../../config/cloudinaryConfig");
 const User = require("../../modal/User");
-// test branch moi
+// test branch moi ngay 29/5/2025
 const addUser = async (req, res) => {
   uploadCloud.single('image')(req, res, async (err) => {
     if (err) {
