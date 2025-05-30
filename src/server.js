@@ -7,6 +7,7 @@ const { routerApi, ApiNodejs } = require('./routes/routes');
 const cookieParser = require('cookie-parser');
 const session = require('express-session');
 const passport = require('passport');
+const { doLoginWGoogle } = require('../../sdnfe/src/redux/action/userAction');
 // const doLoginWGoogle = require('./controller/social/GoogleController');
 
 const app = express();
@@ -32,7 +33,7 @@ app.use(passport.session()); // Enable passport session support
 
 // Configure CORS
 app.use(cors({
-  origin: '*',
+  origin: ['http://localhost:6161'],
   credentials: true,
 }));
 
@@ -52,7 +53,7 @@ app.use((err, req, res, next) => {
 (async () => {
   try {
     await connection();
-    // doLoginWGoogle();
+    doLoginWGoogle();
     app.listen(port, '0.0.0.0', () => {
       console.log(`Backend app listening on http://localhost:${port}`);
     });
