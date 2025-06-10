@@ -1,13 +1,17 @@
 const express = require('express');
 const routerApi = express.Router();
 const { checkAccessToken, createRefreshToken, createJWT } = require('../middleware/JWTAction');
-const { addUser } = require('../controller/User/UserController');
+const { addUser, getUserByUserId } = require('../controller/User/UserController');
 const { apiLogin, apiRegister, verifyOtp } = require('../controller/Auth/AuthController');
 const passport = require('passport');
+const { NewConversation, GetConversation } = require('../Socket controller/ConversationController');
+const { SendMessage, GetMessages, MarkMessagesAsSeen } = require('../Socket controller/MessageController');
 
 routerApi.post('/login', apiLogin);
 routerApi.post('/register', apiRegister);
 routerApi.post('/verify-otp', verifyOtp);
+routerApi.get('/user/:userId',checkAccessToken,getUserByUserId)
+
 routerApi.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] }));
 
@@ -44,6 +48,13 @@ routerApi.post('/decode-token', (req, res) => {
 
 //OTP
 routerApi.post('/verify-otp', verifyOtp);
+
+//socket 
+routerApi.post('/conversation',checkAccessToken,NewConversation);
+routerApi.get('/conversation',checkAccessToken,GetConversation);
+routerApi.post('/message',checkAccessToken,SendMessage);
+routerApi.get('/messages/:conversationId',checkAccessToken,GetMessages);
+routerApi.put('/seenmessage/:conversationId',checkAccessToken,MarkMessagesAsSeen);
 
 routerApi.post('/user', addUser);
 module.exports = { routerApi };

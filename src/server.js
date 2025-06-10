@@ -10,17 +10,20 @@ const passport = require('passport');
 const socketHandler = require('./socket/socket');
 const doLoginWGoogle = require('./controller/social/GoogleController');
 const socketIo = require('socket.io');
+const http = require('http');
 
 const app = express();
 const port = process.env.PORT || 8888;
 const hostname = process.env.HOST_NAME || 'localhost';
-// const io = socketIo(server, {
-//   cors: {
-//     origin: "http://localhost:7070",
-//     methods: ['GET', 'POST', 'PUT', 'DELETE'],
-//     credentials: true
-//   }
-// });
+const server = http.createServer(app);
+
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:6161",
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true
+  }
+});
 // Configure request body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -56,13 +59,13 @@ app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
-//  socketHandler(io); 
+ socketHandler(io); 
 (async () => {
   try {
     await connection();
     doLoginWGoogle();
-    app.listen(port, '0.0.0.0', () => {
-      console.log(`Backend app listening on http://localhost:${port}`);
+    server.listen(port, hostname, () => {
+      console.log(`Backend + Socket listening on http://${hostname}:${port}`);
     });
 
   } catch (error) {
