@@ -1,8 +1,27 @@
 const express = require('express');
 const routerApi = express.Router();
 const { checkAccessToken, createRefreshToken, createJWT } = require('../middleware/JWTAction');
-const { addUser, getUserByUserId } = require('../controller/User/UserController');
+const { addUser, getUserByUserId, getAllUsers, blockUser, unblockUser, deleteUser } = require('../controller/User/UserController');
 const { apiLogin, apiRegister, verifyOtp } = require('../controller/Auth/AuthController');
+const { 
+  submitApplication, 
+  getAllApplications, 
+  getApplicationsByStatus, 
+  approveApplication, 
+  rejectApplication, 
+  getApplicationById, 
+  getTutorApplications 
+} = require('../controller/Tutor/TutorApplicationController');
+const {
+  getAllTutors,
+  getTutorsByStatus,
+  getTutorById,
+  verifyTutor,
+  unverifyTutor,
+  toggleTutorStatus,
+  deleteTutor,
+  getTutorStats
+} = require('../controller/Tutor/TutorController');
 const passport = require('passport');
 const { NewConversation, GetConversation } = require('../Socket controller/ConversationController');
 const { SendMessage, GetMessages, MarkMessagesAsSeen } = require('../Socket controller/MessageController');
@@ -17,7 +36,11 @@ routerApi.get('/auth/google',
 
 routerApi.get('/google/redirect',
     passport.authenticate('google', { failureRedirect: 'http://localhost:6161/signin' }),
-    (req, res) => {
+    async (req, res) => {
+        // Kiểm tra block
+        if (req.user.isBlocked) {
+            return res.redirect('http://localhost:6161/signin?error=blocked');
+        }
         // Create a payload for JWT
         const payload = {
             email: req.user.email,
@@ -57,4 +80,30 @@ routerApi.get('/messages/:conversationId',checkAccessToken,GetMessages);
 routerApi.put('/seenmessage/:conversationId',checkAccessToken,MarkMessagesAsSeen);
 
 routerApi.post('/user', addUser);
+
+// Admin routes
+routerApi.get('/admin/users', checkAccessToken, getAllUsers);
+routerApi.put('/admin/users/:userId/block', checkAccessToken, blockUser);
+routerApi.put('/admin/users/:userId/unblock', checkAccessToken, unblockUser);
+routerApi.delete('/admin/users/:userId', checkAccessToken, deleteUser);
+
+// Tutor Application routes
+routerApi.post('/tutor/application', checkAccessToken, submitApplication);
+routerApi.get('/tutor/applications', checkAccessToken, getTutorApplications);
+routerApi.get('/admin/applications', checkAccessToken, getAllApplications);
+routerApi.get('/admin/applications/:status', checkAccessToken, getApplicationsByStatus);
+routerApi.get('/admin/applications/detail/:applicationId', checkAccessToken, getApplicationById);
+routerApi.put('/admin/applications/:applicationId/approve', checkAccessToken, approveApplication);
+routerApi.put('/admin/applications/:applicationId/reject', checkAccessToken, rejectApplication);
+
+// Tutor Management routes
+routerApi.get('/admin/tutors', checkAccessToken, getAllTutors);
+routerApi.get('/admin/tutors/:status', checkAccessToken, getTutorsByStatus);
+routerApi.get('/admin/tutors/detail/:tutorId', checkAccessToken, getTutorById);
+routerApi.put('/admin/tutors/:tutorId/verify', checkAccessToken, verifyTutor);
+routerApi.put('/admin/tutors/:tutorId/unverify', checkAccessToken, unverifyTutor);
+routerApi.put('/admin/tutors/:tutorId/toggle-status', checkAccessToken, toggleTutorStatus);
+routerApi.delete('/admin/tutors/:tutorId', checkAccessToken, deleteTutor);
+routerApi.get('/admin/tutors-stats', checkAccessToken, getTutorStats);
+
 module.exports = { routerApi };

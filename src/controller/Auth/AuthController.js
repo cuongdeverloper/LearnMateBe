@@ -25,6 +25,12 @@ const apiLogin = async (req, res) => {
       });
     }
 
+    if (userRecord.isBlocked) {
+      return res.status(403).json({
+        errorCode: 6,
+        message: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.'
+      });
+    }
 
     const isPasswordValid = await bcrypt.compare(password, userRecord.password);
 

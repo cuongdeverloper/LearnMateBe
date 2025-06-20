@@ -1,4 +1,5 @@
 const jwt = require('jsonwebtoken');
+const user = require('../modal/User');
 require('dotenv').config();
 
 const createJWT = (payload) => {
@@ -53,7 +54,7 @@ const verifyToken = (token, key) => {
 const verifyAccessToken = (token) => verifyToken(token, process.env.JWT_SECRET);
 const verifyRefreshToken = (token) => verifyToken(token, process.env.REFRESH_TOKEN_SECRET);
 
-const checkAccessToken = (req, res, next) => {
+const checkAccessToken = async (req, res, next) => {
     // const nonSecurePaths = ["/", "/login"];
     // if (nonSecurePaths.includes(req.path)) {
     //     return next();
@@ -77,6 +78,24 @@ const checkAccessToken = (req, res, next) => {
     const verifiedToken = verifyAccessToken(token);
     if (!verifiedToken) {
         return res.status(401).json({ message: 'Invalid or expired access token' });
+    }
+
+    // Kiểm tra xem user có bị block không
+    try {
+        const userRecord = await user.findById(verifiedToken.id);
+        if (!userRecord) {
+            return res.status(401).json({ message: 'User not found' });
+        }
+        
+        if (userRecord.isBlocked) {
+            return res.status(403).json({ 
+                errorCode: 6,
+                message: 'Tài khoản đã bị khóa. Vui lòng liên hệ quản trị viên.' 
+            });
+        }
+    } catch (error) {
+        console.error('Error checking user status:', error);
+        return res.status(500).json({ message: 'Error checking user status' });
     }
 
     req.user = verifiedToken;
