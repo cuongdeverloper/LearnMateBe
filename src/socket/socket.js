@@ -35,6 +35,7 @@ const socketHandler = (io) => {
         io.to(user.socketId).emit("getMessage", {  // Emit message to receiver's socket
           senderId,
           text,
+          conversationId,
         });
       }
     });
