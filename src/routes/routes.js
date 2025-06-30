@@ -6,6 +6,7 @@ const { apiLogin, apiRegister, verifyOtp, requestPasswordReset, resetPassword } 
 const passport = require('passport');
 const { NewConversation, GetConversation } = require('../Socket controller/ConversationController');
 const { SendMessage, GetMessages, MarkMessagesAsSeen } = require('../Socket controller/MessageController');
+const { getProfile, updateProfile } = require('../controller/User/ProfileController');
 
 routerApi.post('/login', apiLogin);
 routerApi.post('/register', apiRegister);
@@ -61,4 +62,8 @@ routerApi.post('/user', addUser);
 //reset password
 routerApi.post('/rqreset-password', requestPasswordReset);
 routerApi.post('/reset-password', resetPassword);
+
+routerApi.get('/profile', checkAccessToken, getProfile);
+routerApi.put('/update-profile', checkAccessToken, updateProfile);
+
 module.exports = { routerApi };
