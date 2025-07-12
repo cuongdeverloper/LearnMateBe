@@ -2,10 +2,11 @@ const express = require('express');
 const routerApi = express.Router();
 const { checkAccessToken, createRefreshToken, createJWT } = require('../middleware/JWTAction');
 const { addUser, getUserByUserId } = require('../controller/User/UserController');
-const { apiLogin, apiRegister, verifyOtp } = require('../controller/Auth/AuthController');
+const { apiLogin, apiRegister, verifyOtp, requestPasswordReset, resetPassword } = require('../controller/Auth/AuthController');
 const passport = require('passport');
 const { NewConversation, GetConversation } = require('../Socket controller/ConversationController');
 const { SendMessage, GetMessages, MarkMessagesAsSeen } = require('../Socket controller/MessageController');
+const { getProfile, updateProfile } = require('../controller/User/ProfileController');
 
 routerApi.post('/login', apiLogin);
 routerApi.post('/register', apiRegister);
@@ -57,4 +58,12 @@ routerApi.get('/messages/:conversationId',checkAccessToken,GetMessages);
 routerApi.put('/seenmessage/:conversationId',checkAccessToken,MarkMessagesAsSeen);
 
 routerApi.post('/user', addUser);
+
+//reset password
+routerApi.post('/rqreset-password', requestPasswordReset);
+routerApi.post('/reset-password', resetPassword);
+
+routerApi.get('/profile', checkAccessToken, getProfile);
+routerApi.put('/update-profile', checkAccessToken, updateProfile);
+
 module.exports = { routerApi };
