@@ -11,7 +11,6 @@ const socketHandler = require('./socket/socket');
 const doLoginWGoogle = require('./controller/social/GoogleController');
 const socketIo = require('socket.io');
 const http = require('http');
-const router = require('./routes/tutorRoutes');
 
 const app = express();
 const port = process.env.PORT || 8888;
@@ -20,7 +19,7 @@ const server = http.createServer(app);
 
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:6161",
+    origin: "process.env.CLIENT_URL",
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
     credentials: true
   }
@@ -44,7 +43,7 @@ app.use(passport.session()); // Enable passport session support
 
 // Configure CORS
 app.use(cors({
-  origin: ['http://localhost:6161'],
+  origin: process.env.CLIENT_URL,
   credentials: true,
 }));
 
@@ -55,8 +54,6 @@ app.use('/', routerApi);
 app.get("/", (req, res) => {
   res.json("Hello");
 }) 
-app.use('/api/tutor', router);
-
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
