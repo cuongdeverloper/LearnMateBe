@@ -300,3 +300,16 @@ exports.getFinancialFlowHistory = async (req, res) => {
       res.status(500).json({ message: 'Lỗi lấy lịch sử dòng tiền.', error: error.message });
   }
 };
+
+const FinancialHistory = require('../../modal/FinancialHistory');
+
+exports.getUserFinancialFlow = async (req, res) => {
+  try {
+    const userId = req.user._id || req.user.id;
+    const history = await FinancialHistory.find({ userId }).sort({ date: -1 });
+    res.json({ history });
+  } catch (error) {
+    console.error('Lỗi khi lấy lịch sử dòng tiền:', error);
+    res.status(500).json({ message: 'Lỗi server khi lấy lịch sử dòng tiền' });
+  }
+};

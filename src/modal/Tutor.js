@@ -8,7 +8,7 @@ const certificationSchema = new mongoose.Schema({
 
 const timeSlotSchema = new mongoose.Schema({
   day: String,
-  slots: [String], // ví dụ: ["08:00-10:00"]
+  slots: [String], 
 }, { _id: false });
 
 const tutorSchema = new mongoose.Schema({
@@ -26,6 +26,10 @@ const tutorSchema = new mongoose.Schema({
   availableTimes: [timeSlotSchema],
   profileImage: String,
   reviews: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Review' }],
+  isVerified: {
+    type: Boolean,
+    default: false
+  },
 }, { timestamps: true });
 
 module.exports = mongoose.model('Tutor', tutorSchema);

@@ -1,9 +1,10 @@
-const { createJWT, createRefreshToken, verifyAccessToken, createJWTResetPassword } = require('../../middleware/JWTAction');
+const { createJWT, createRefreshToken, verifyAccessToken, createJWTResetPassword, createJWTVerifyEmail } = require('../../middleware/JWTAction');
 const bcrypt = require('bcryptjs');
 const UserOTPVerification = require('./UserOTPVerification');
 const uploadCloud = require('../../config/cloudinaryConfig');
-const { sendMail } = require('../../config/mailSendConfig copy');
+const { sendMail } = require('../../config/mailSendConfig');
 const user = require('../../modal/User');
+const User = require('../../modal/User');
 require('dotenv').config();
 
 const apiLogin = async (req, res) => {
@@ -104,7 +105,6 @@ const apiRegister = async (req, res) => {
         });
       }
 
-
       const newUser = new user({
         username,
         email,
@@ -116,36 +116,32 @@ const apiRegister = async (req, res) => {
       });
       await newUser.save();
 
-      // Generate OTP
-      const otp = `${Math.floor(1000 + Math.random() * 9000)}`;
-      const hashedOTP = await bcrypt.hash(otp, 10);
+      const payload = { id: newUser._id, email: newUser.email };
+      const verifyToken = createJWTVerifyEmail(payload);
+      const verifyLink = `${process.env.FRONTEND_URL}/verify-account?token=${verifyToken}`;
 
-      // Create OTP verification entry
-      const newOtpVerification = new UserOTPVerification({
-        userId: newUser._id,
-        otp: hashedOTP,
-      });
-      await newOtpVerification.save();
-
-      // Send OTP to user's email
-      const emailSubject = 'Your OTP Verification Code';
-      const emailContent = `Your OTP code is: ${otp}. It will expire in 5 minutes.`;
+      const emailSubject = 'Verify Your Account';
+      const emailContent = `
+        <div style="font-family:sans-serif;max-width:500px;margin:auto;padding:20px;border:1px solid #eee;border-radius:8px;">
+          <h2 style="color:#333;">Welcome to Our App, ${username}!</h2>
+          <p>Click the button below to verify your account:</p>
+          <a href="${verifyLink}" style="display:inline-block;margin-top:12px;padding:10px 20px;background-color:#4CAF50;color:white;text-decoration:none;border-radius:5px;">Verify Account</a>
+          <p style="margin-top:20px;color:#888;font-size:13px;">This link will expire in 5 minutes.</p>
+        </div>
+      `;
       await sendMail(email, emailSubject, emailContent);
 
-      // Schedule account deletion if not verified in 5 minutes
+      // ✅ Schedule account deletion if not verified in 5 minutes
       setTimeout(async () => {
-        const isVerified = await user.findById(newUser._id).select('verified');
-        if (!isVerified || !isVerified.verified) {
-          // Delete the user and OTP record
+        const userRecord = await user.findById(newUser._id);
+        if (!userRecord?.verified) {
           await user.findByIdAndDelete(newUser._id);
-          await UserOTPVerification.deleteMany({ userId: newUser._id });
-          console.log(`Deleted unverified user with ID: ${newUser._id}`);
         }
-      }, 5 * 60 * 1000); 
+      }, 5 * 60 * 1000);
 
       return res.status(201).json({
         errorCode: 0,
-        message: 'Registration successful. An OTP has been sent to your email for verification.',
+        message: 'Registration successful. Please check your email to verify your account.',
         data: {
           id: newUser._id,
           username: newUser.username,
@@ -303,7 +299,6 @@ const resetPassword = async (req, res) => {
     }
 
     const decodedToken = verifyAccessToken(token);
-    console.log(decodedToken)
     if (!decodedToken) {
       return res.status(203).json({ errorCode: 2, message: 'Invalid or expired token' });
     }
@@ -390,9 +385,33 @@ const changePassword = async (req, res) => {
   }
 };
 
+const verifyAccountByLink = async (req, res) => {
+  try {
+    const { token } = req.query;
+    if (!token) {
+      return res.status(400).json({ errorCode: 1, message: 'Token is required' });
+    }
+
+    const decoded = verifyAccessToken(token);
+    if (!decoded) {
+      return res.status(403).json({ errorCode: 2, message: 'Invalid or expired token' });
+    }
+
+    const updatedUser = await user.findByIdAndUpdate(decoded.id, { verified: true }, { new: true });
+    if (!updatedUser) {
+      return res.status(404).json({ errorCode: 3, message: 'User not found' });
+    }
+
+    return res.status(200).json({ errorCode: 0, message: 'Account verified successfully' });
+  } catch (error) {
+    console.error('Verify account link error:', error);
+    return res.status(500).json({ errorCode: 4, message: 'Server error during verification' });
+  }
+};
+
 
 module.exports = {
   apiLogin,apiRegister,verifyOtp,resendOTPVerificationCode,
-  requestPasswordReset,resetPassword,changePassword
+  requestPasswordReset,resetPassword,changePassword,verifyAccountByLink
 };
 

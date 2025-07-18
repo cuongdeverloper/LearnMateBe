@@ -12,7 +12,7 @@ const storage = new CloudinaryStorage({
   cloudinary,
   params: {
     folder: 'SDN392',
-    allowed_formats: ['jpg', 'png'],
+    allowed_formats: ['jpg', 'png','pdf'],
     public_id: (req, file) => `img-${Date.now()}-${file.originalname}`,
   },
 });

@@ -5,24 +5,28 @@ const SavedTutor = require('../../modal/SavedTutor');
 // 🔍 Lấy danh sách tutor có filter
 exports.getTutors = async (req, res) => {
   try {
-    const { name, subject, minPrice, maxPrice, minRating, class: classGrade } = req.query;
+    const { name, subject, subjects, minPrice, maxPrice, minRating, class: classGrade } = req.query;
 
     let filter = {};
-
-    // Lọc theo tên tutor (từ User model)
     let userFilter = {};
+
+    // Lọc theo tên tutor (User)
     if (name) {
       userFilter.username = { $regex: name, $options: 'i' };
     }
 
-    // Lọc theo subject
-    if (subject) {
+    // ✅ Lọc theo nhiều môn học
+    if (subjects) {
+      const subjectList = decodeURIComponent(subjects).split(',').map(s => s.trim());
+      filter.subjects = { $in: subjectList };
+    } else if (subject) {
+      // Lọc theo 1 môn học duy nhất
       filter.subjects = { $regex: subject, $options: 'i' };
     }
 
-    // Lọc theo class (tutor dạy lớp nào)
+    // Lọc theo class (lớp)
     if (classGrade) {
-      filter.classes = Number(classGrade);  // classes là array, nên MongoDB sẽ tìm các tutor có lớp này
+      filter.classes = Number(classGrade);
     }
 
     // Lọc theo khoảng giá
@@ -37,14 +41,14 @@ exports.getTutors = async (req, res) => {
       filter.rating = { $gte: Number(minRating) };
     }
 
-    // Tìm tutor và populate user
+    // Truy vấn
     let tutors = await Tutor.find(filter).populate({
       path: 'user',
       match: userFilter,
       select: 'username email image phoneNumber gender',
     });
 
-    // Loại bỏ tutor không có user match khi dùng `match`
+    // Bỏ tutor không có user match
     tutors = tutors.filter(tutor => tutor.user !== null);
 
     res.json({ success: true, tutors });
@@ -52,6 +56,7 @@ exports.getTutors = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 exports.getTutorById = async (req, res) => {
   try {
@@ -148,3 +153,6 @@ exports.removeSavedTutor = async (req, res) => {
     res.status(500).json({ message: 'Lỗi server.' });
   }
 };
+// GET /api/tutors/by-subjects?subjects=Toán,Lý,Hóa
+
+

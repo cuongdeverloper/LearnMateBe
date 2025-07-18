@@ -11,6 +11,7 @@ const socketHandler = require('./socket/socket');
 const doLoginWGoogle = require('./controller/social/GoogleController');
 const socketIo = require('socket.io');
 const http = require('http');
+const router = require('./routes/tutorRoutes');
 
 const app = express();
 const port = process.env.PORT || 8888;
@@ -54,6 +55,8 @@ app.use('/', routerApi);
 app.get("/", (req, res) => {
   res.json("Hello");
 }) 
+app.use('/api/tutor', router);
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);

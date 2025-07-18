@@ -82,7 +82,11 @@ const checkAccessToken = (req, res, next) => {
     req.user = verifiedToken;
     next();
 };
-
+const createJWTVerifyEmail = (payload) => {
+  const key = process.env.JWT_SECRET;
+  const options = { expiresIn: '5m' };
+  return jwt.sign(payload, key, options);
+};
 module.exports = {
     createJWT,
     createRefreshToken,
@@ -90,5 +94,6 @@ module.exports = {
     verifyRefreshToken,
     checkAccessToken,
     decodeToken,
-    createJWTResetPassword
+    createJWTResetPassword,
+    createJWTVerifyEmail
 };

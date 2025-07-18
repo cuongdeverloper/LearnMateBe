@@ -111,12 +111,13 @@ exports.getLearnerWeeklySchedules = async (req, res) => {
 
     const startDate = new Date(weekStart);
     startDate.setUTCHours(0, 0, 0, 0);
-    const endDate = addDays(startDate, 7);
-    endDate.setUTCHours(0, 0, 0, 0);
-
+    
+    const endDate = addDays(startDate, 7); // lấy đến đúng Chủ nhật
+    endDate.setUTCHours(23, 59, 59, 999); // bao toàn bộ ngày Chủ nhật
+    
     const schedules = await Schedule.find({
       learnerId: learnerId,
-      date: { $gte: startDate, $lt: endDate }
+      date: { $gte: startDate, $lte: endDate } // CHỈNH SỬA Ở ĐÂY
     })
     .populate({
       path: 'bookingId',
@@ -130,7 +131,7 @@ exports.getLearnerWeeklySchedules = async (req, res) => {
         }
       }
     })
-    .select('date startTime endTime bookingId attended'); // ĐÃ THÊM 'attended' VÀO ĐÂY
+    .select('date startTime endTime bookingId attended');
 
     res.json(schedules);
   } catch (error) {
@@ -175,29 +176,7 @@ exports.markAttendance = async (req, res) => {
       schedule.attended = attended;
       await schedule.save();
 
-      // --- LOGIC CẬP NHẬT TRẠNG THÁI HOÀN THÀNH CỦA BOOKING ---
-      if (schedule.bookingId) {
-          const booking = await Booking.findById(schedule.bookingId);
 
-          if (booking) {
-              const totalSessions = booking.numberOfSessions;
-              const attendedSessions = await Schedule.countDocuments({
-                  bookingId: booking._id,
-                  attended: true
-              });
-
-              // Nếu số buổi đã điểm danh >= tổng số buổi VÀ booking đang ở trạng thái 'approve'
-              // thì set completed = true. Ngược lại, set completed = false.
-              const newCompletedStatus = (attendedSessions >= totalSessions && booking.status === 'approve');
-
-              if (booking.completed !== newCompletedStatus) {
-                  booking.completed = newCompletedStatus;
-                  await booking.save();
-                  console.log(`Booking ${booking._id} completed status updated to: ${newCompletedStatus}`);
-              }
-          }
-      }
-      // --- KẾT THÚC LOGIC CẬP NHẬT TRẠNG THÁI HOÀN THÀNH ---
 
       res.json({ message: 'Điểm danh đã được cập nhật thành công', schedule });
 

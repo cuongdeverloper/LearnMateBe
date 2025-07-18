@@ -1,6 +1,7 @@
 const Booking = require('../../modal/Booking');
 const User = require('../../modal/User'); // giả sử đây là model user
-
+const Schedule = require('../../modal/Schedule'); 
+const FinancialHistory = require('../../modal/FinancialHistory');
 
 exports.getBookingById = async (req, res) => {
   try {
@@ -51,7 +52,16 @@ exports.createBooking = async (req, res) => {
     // Trừ tiền balance
     user.balance -= amount;
     await user.save();
-
+    await FinancialHistory.create({
+      userId: user._id,
+      amount: amount,
+      balanceChange: -amount,
+      type: 'spend', // ✅ Sửa từ 'Thanh toán Booking' thành 'spend'
+      status: 'pending',
+      description: `Thanh toán cho booking với gia sư ${tutorId.toString().slice(-6)}`,
+      date: new Date()
+    });
+    
     // Tạo booking với trạng thái pending và bao gồm note
     const booking = await Booking.create({
       learnerId: req.user.id || req.user._id,
@@ -152,6 +162,15 @@ exports.cancelBooking = async (req, res) => {
 
     user.balance += booking.amount; // Hoàn lại số tiền booking
     await user.save();
+    await FinancialHistory.create({
+      userId: userId,
+      amount: booking.amount,
+      balanceChange: booking.amount,
+      type: 'earning',
+      status: 'success',
+      description: `Hoàn tiền sau khi hủy  khóa học (${booking._id.toString().slice(-6)})`,
+      date: new Date()
+    });
 
     res.status(200).json({ success: true, message: 'Booking cancelled and refunded successfully.', bookingId: booking._id });
 
@@ -160,3 +179,102 @@ exports.cancelBooking = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
+
+exports.finishBooking = async (req, res) => {
+  try {
+    const { bookingId } = req.params;
+    if (!bookingId || !bookingId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid bookingId' });
+    }
+
+    const booking = await Booking.findById(bookingId).populate({
+      path: 'tutorId',
+      populate: { path: 'user' }
+    });
+
+    if (!booking) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    if (booking.completed) {
+      return res.status(400).json({ message: 'Booking đã hoàn thành trước đó' });
+    }
+
+    // Kiểm tra tất cả các schedule đã được điểm danh
+    const totalSessions = booking.numberOfSessions;
+    const attendedSessions = await Schedule.countDocuments({
+      bookingId: bookingId,
+      attended: true
+    });
+
+    if (attendedSessions < totalSessions) {
+      return res.status(400).json({ message: 'Chưa hoàn thành đủ buổi học để kết thúc khóa' });
+    }
+
+    booking.completed = true;
+    await booking.save();
+
+    // Cộng tiền vào tutor.user.balance
+    const tutorUser = booking.tutorId.user;
+    const tutorUserDoc = await User.findById(tutorUser._id);
+
+    if (!tutorUserDoc) {
+      return res.status(404).json({ message: 'Tutor user not found' });
+    }
+
+    tutorUserDoc.balance += booking.amount;
+    await tutorUserDoc.save();
+    await FinancialHistory.create({
+      userId: tutorUserDoc._id,
+      amount: booking.amount,
+      balanceChange: booking.amount,
+      type: 'earning',
+      status: 'success',
+      description: `Nhận tiền từ học viên sau khi hoàn tất khóa học (${booking._id.toString().slice(-6)})`,
+      date: new Date()
+    });
+    res.json({ message: 'Đã hoàn thành khóa học và cộng tiền cho tutor', balance: tutorUserDoc.balance });
+  } catch (error) {
+    console.error("Error finishing booking:", error);
+    res.status(500).json({ message: 'Lỗi server khi hoàn tất khóa học' });
+  }
+};
+exports.getAllBookingsByTutorId = async (req, res) => {
+  try {
+    const { tutorId } = req.params;
+
+    if (!tutorId || !tutorId.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid tutor ID format.' });
+    }
+
+    const bookings = await Booking.find({ tutorId })
+      .populate({
+        path: 'learnerId',
+        select: 'username email image',
+      })
+      .populate({
+        path: 'scheduleIds',
+        select: 'date startTime endTime attended',
+      })
+      .sort({ createdAt: -1 });
+
+    // Tính toán startDate và endDate từ scheduleIds
+    const enrichedBookings = bookings.map((booking) => {
+      const dates = booking.scheduleIds.map((s) => new Date(s.date));
+      const startDate = dates.length > 0 ? new Date(Math.min(...dates)) : null;
+      const endDate = dates.length > 0 ? new Date(Math.max(...dates)) : null;
+
+      return {
+        ...booking.toObject(),
+        startDate,
+        endDate,
+      };
+    });
+
+    res.status(200).json({ success: true, bookings: enrichedBookings });
+  } catch (error) {
+    console.error("Error fetching bookings by tutor ID:", error);
+    res.status(500).json({ message: 'Lỗi server khi lấy danh sách booking của tutor.' });
+  }
+};
+
