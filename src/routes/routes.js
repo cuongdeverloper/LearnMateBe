@@ -30,7 +30,7 @@ routerApi.get('/auth/google',
     passport.authenticate('google', { scope: ['profile', 'email'] }));
 
 routerApi.get('/google/redirect',
-    passport.authenticate('google', { failureRedirect: 'http://localhost:6161/signin' }),
+    passport.authenticate('google', { failureRedirect: 'https://learnmate-rust.vercel.app/signin' }),
     (req, res) => {
         // Create a payload for JWT
         const payload = {
@@ -44,7 +44,7 @@ routerApi.get('/google/redirect',
         const refreshToken = createRefreshToken(payload);
 
         // Construct the redirect URL
-        const redirectUrl = `http://localhost:6161/auth/callback?accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
+        const redirectUrl = `https://learnmate-rust.vercel.app/auth/callback?accessToken=${encodeURIComponent(accessToken)}&refreshToken=${encodeURIComponent(refreshToken)}&user=${encodeURIComponent(JSON.stringify(req.user))}`;
 
         // Redirect to the frontend with tokens
         res.redirect(redirectUrl);

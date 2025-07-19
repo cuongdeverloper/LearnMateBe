@@ -59,13 +59,13 @@ exports.vnpayReturn = async (req, res) => {
     const { vnp_ResponseCode, vnp_TxnRef, vnp_Amount } = query;
 
     if (!vnp_TxnRef || !vnp_Amount) {
-      return res.redirect('http://localhost:6161/payment/result?status=error');
+      return res.redirect('https://learnmate-rust.vercel.app/payment/result?status=error');
     }
 
     const userId = vnp_TxnRef.split('_')[1];
     const user = await User.findById(userId);
     if (!user) {
-      return res.redirect('http://localhost:6161/payment/result?status=user_not_found');
+      return res.redirect('https://learnmate-rust.vercel.app/payment/result?status=user_not_found');
     }
 
     // Tìm payment đã tồn tại dựa vào vnp_TxnRef
@@ -97,10 +97,10 @@ exports.vnpayReturn = async (req, res) => {
 
     await payment.save();
 
-    return res.redirect(`http://localhost:6161/payment/result?vnp_ResponseCode=${vnp_ResponseCode}&vnp_Amount=${vnp_Amount}`);
+    return res.redirect(`https://learnmate-rust.vercel.app/payment/result?vnp_ResponseCode=${vnp_ResponseCode}&vnp_Amount=${vnp_Amount}`);
   } catch (error) {
     console.error('Lỗi xử lý kết quả thanh toán VNPAY:', error);
-    return res.redirect('http://localhost:6161/payment/result?status=error');
+    return res.redirect('https://learnmate-rust.vercel.app/payment/result?status=error');
   }
 };
 
