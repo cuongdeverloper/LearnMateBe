@@ -53,20 +53,21 @@ configViewEngine(app);
 app.use('/', routerApi);
 app.get("/", (req, res) => {
   res.json("Hello");
-}) 
+})
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error(err.stack);
   res.status(500).send('Something broke!');
 });
- socketHandler(io); 
+socketHandler(io);
 (async () => {
   try {
     await connection();
     doLoginWGoogle();
-    server.listen(port, hostname, () => {
-      console.log(`Backend + Socket listening on http://${hostname}:${port}`);
+    server.listen(port, () => {
+      console.log(`Backend + Socket listening on port ${port}`);
     });
+
 
   } catch (error) {
     console.error("Error connecting to the database:", error);
