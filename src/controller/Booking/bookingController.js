@@ -181,64 +181,75 @@ exports.cancelBooking = async (req, res) => {
 };
 
 exports.finishBooking = async (req, res) => {
-  try {
-    const { bookingId } = req.params;
-    if (!bookingId || !bookingId.match(/^[0-9a-fA-F]{24}$/)) {
-      return res.status(400).json({ message: 'Invalid bookingId' });
-    }
-
-    const booking = await Booking.findById(bookingId).populate({
-      path: 'tutorId',
-      populate: { path: 'user' }
-    });
-
-    if (!booking) {
-      return res.status(404).json({ message: 'Booking not found' });
-    }
-
-    if (booking.completed) {
-      return res.status(400).json({ message: 'Booking đã hoàn thành trước đó' });
-    }
-
-    // Kiểm tra tất cả các schedule đã được điểm danh
-    const totalSessions = booking.numberOfSessions;
-    const attendedSessions = await Schedule.countDocuments({
-      bookingId: bookingId,
-      attended: true
-    });
-
-    if (attendedSessions < totalSessions) {
-      return res.status(400).json({ message: 'Chưa hoàn thành đủ buổi học để kết thúc khóa' });
-    }
-
-    booking.completed = true;
-    await booking.save();
-
-    // Cộng tiền vào tutor.user.balance
-    const tutorUser = booking.tutorId.user;
-    const tutorUserDoc = await User.findById(tutorUser._id);
-
-    if (!tutorUserDoc) {
-      return res.status(404).json({ message: 'Tutor user not found' });
-    }
-
-    tutorUserDoc.balance += booking.amount;
-    await tutorUserDoc.save();
-    await FinancialHistory.create({
-      userId: tutorUserDoc._id,
-      amount: booking.amount,
-      balanceChange: booking.amount,
-      type: 'earning',
-      status: 'success',
-      description: `Nhận tiền từ học viên sau khi hoàn tất khóa học (${booking._id.toString().slice(-6)})`,
-      date: new Date()
-    });
-    res.json({ message: 'Đã hoàn thành khóa học và cộng tiền cho tutor', balance: tutorUserDoc.balance });
-  } catch (error) {
-    console.error("Error finishing booking:", error);
-    res.status(500).json({ message: 'Lỗi server khi hoàn tất khóa học' });
+    try {
+      const { bookingId } = req.params;
+      const booking = await Booking.findById(bookingId).populate({
+        path: 'tutorId',
+        populate: { path: 'user' }
+      });
+      if (!bookingId || !bookingId.match(/^[0-9a-fA-F]{24}$/)) {
+        return res.status(400).json({ message: 'Invalid bookingId' });
+      }
+  if (!booking.tutorId || !booking.tutorId.user) {
+    return res.status(500).json({ message: 'Thiếu thông tin người dạy (tutor.user) trong booking' });
   }
-};
+  
+      console.log("📦 booking chi tiết:", booking);
+      if (!booking) {
+        return res.status(404).json({ message: 'Booking not found' });
+      }
+  
+      if (booking.completed) {
+        return res.status(400).json({ message: 'Booking đã hoàn thành trước đó' });
+      }
+  
+      const totalSessions = booking.numberOfSessions;
+      const attendedSessions = await Schedule.countDocuments({
+        bookingId: bookingId,
+        attended: true
+      });
+  
+      // ✅ Kiểm tra chưa học buổi nào
+      if (attendedSessions === 0) {
+        return res.status(400).json({ message: 'Chưa học buổi nào. Không thể kết thúc khóa học.' });
+      }
+  
+      // ✅ Kiểm tra chưa học đủ số buổi
+      if (attendedSessions < totalSessions) {
+        return res.status(400).json({ message: 'Chưa hoàn thành đủ buổi học để kết thúc khóa' });
+      }
+  
+      booking.completed = true;
+      await booking.save();
+  
+      const tutorUser = booking.tutorId.user;
+      const tutorUserDoc = await User.findById(tutorUser._id);
+  
+      if (!tutorUserDoc) {
+        return res.status(404).json({ message: 'Tutor user not found' });
+      }
+  
+      tutorUserDoc.balance += booking.amount;
+      await tutorUserDoc.save();
+  
+      await FinancialHistory.create({
+        userId: tutorUserDoc._id,
+        amount: booking.amount,
+        balanceChange: booking.amount,
+        type: 'earning',
+        status: 'success',
+        description: `Nhận tiền từ học viên sau khi hoàn tất khóa học (${booking._id.toString().slice(-6)})`,
+        date: new Date()
+      });
+  
+      res.json({ message: 'Đã hoàn thành khóa học và cộng tiền cho tutor', balance: tutorUserDoc.balance });
+  
+    } catch (error) {
+      console.error("❌ Error finishing booking:", error.message);
+      console.error("📦 Full error object:", error);  // In cả stack trace
+      res.status(500).json({ message: 'Lỗi server khi hoàn tất khóa học', error: error.message });
+    }
+  };
 exports.getAllBookingsByTutorId = async (req, res) => {
   try {
     const { tutorId } = req.params;

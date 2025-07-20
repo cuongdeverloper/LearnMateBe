@@ -5,52 +5,52 @@ const { VNPay, ignoreLogger, ProductCode, VnpLocale, dateFormat } = require('vnp
 const Withdrawal = require('../../modal/Withdrawal');
 const Booking = require('../../modal/Booking');
 exports.createVNPayPayment = async (req, res) => {
-  try {
-    const userId = req.user.id || req.user._id; // lấy từ token
-    const { amount } = req.body;
-
-    if (!amount || isNaN(amount) || amount <= 0) {
-      return res.status(400).json({ message: 'Thiếu hoặc sai định dạng amount' });
+    try {
+      const userId = req.user.id || req.user._id; 
+      const { amount } = req.body;
+  
+      if (!amount || isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ message: 'Thiếu hoặc sai định dạng amount' });
+      }
+  
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ message: 'Người dùng không tồn tại' });
+      }
+  
+      // Tạo paymentUrl như bạn đã có
+      const vnpay = new VNPay({
+        tmnCode: vnpConfig.vnp_TmnCode,
+        secureSecret: vnpConfig.vnp_HashSecret,
+        vnpayHost: 'https://sandbox.vnpayment.vn',
+        testMode: true,
+        hashAlgorithm: 'SHA512',
+        loggerFn: ignoreLogger,
+      });
+  
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+  
+      const vnp_TxnRef = `deposit_${userId}_${dateFormat(new Date())}`;
+  
+      const paymentUrl = await vnpay.buildPaymentUrl({
+        vnp_Amount: amount,
+        vnp_IpAddr: req.ip || '127.0.0.1',
+        vnp_TxnRef,
+        vnp_OrderInfo: `Nạp tiền vào ví cho user #${userId}`,
+        vnp_OrderType: ProductCode.Other,
+        vnp_ReturnUrl: vnpConfig.vnp_ReturnUrl,
+        vnp_Locale: VnpLocale.VN,
+        vnp_CreateDate: dateFormat(new Date()),
+        vnp_ExpireDate: dateFormat(tomorrow),
+      });
+  
+      return res.status(201).json({ paymentUrl });
+    } catch (error) {
+      console.error('Lỗi tạo thanh toán VNPAY:', error);
+      return res.status(500).json({ message: 'Lỗi tạo thanh toán VNPAY', error: error.message });
     }
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ message: 'Người dùng không tồn tại' });
-    }
-
-    // Tạo paymentUrl như bạn đã có
-    const vnpay = new VNPay({
-      tmnCode: vnpConfig.vnp_TmnCode,
-      secureSecret: vnpConfig.vnp_HashSecret,
-      vnpayHost: 'https://sandbox.vnpayment.vn',
-      testMode: true,
-      hashAlgorithm: 'SHA512',
-      loggerFn: ignoreLogger,
-    });
-
-    const tomorrow = new Date();
-    tomorrow.setDate(tomorrow.getDate() + 1);
-
-    const vnp_TxnRef = `deposit_${userId}_${dateFormat(new Date())}`;
-
-    const paymentUrl = await vnpay.buildPaymentUrl({
-      vnp_Amount: amount * 100,
-      vnp_IpAddr: req.ip || '127.0.0.1',
-      vnp_TxnRef,
-      vnp_OrderInfo: `Nạp tiền vào ví cho user #${userId}`,
-      vnp_OrderType: ProductCode.Other,
-      vnp_ReturnUrl: vnpConfig.vnp_ReturnUrl,
-      vnp_Locale: VnpLocale.VN,
-      vnp_CreateDate: dateFormat(new Date()),
-      vnp_ExpireDate: dateFormat(tomorrow),
-    });
-
-    return res.status(201).json({ paymentUrl });
-  } catch (error) {
-    console.error('Lỗi tạo thanh toán VNPAY:', error);
-    return res.status(500).json({ message: 'Lỗi tạo thanh toán VNPAY', error: error.message });
-  }
-};
+  };
 
 
 exports.vnpayReturn = async (req, res) => {

@@ -140,48 +140,54 @@ exports.getLearnerWeeklySchedules = async (req, res) => {
   }
 };
 exports.markAttendance = async (req, res) => {
-  try {
+    try {
       const { scheduleId } = req.params;
       const { attended } = req.body;
-
+  
       if (!scheduleId || !scheduleId.match(/^[0-9a-fA-F]{24}$/)) {
-          return res.status(400).json({ message: 'Invalid scheduleId' });
+        return res.status(400).json({ message: 'Invalid scheduleId' });
       }
-
+  
       if (!req.user) {
-          return res.status(401).json({ message: 'Unauthorized: User not logged in' });
+        return res.status(401).json({ message: 'Unauthorized: User not logged in' });
       }
-
+  
       const schedule = await Schedule.findById(scheduleId);
-
       if (!schedule) {
-          return res.status(404).json({ message: 'Schedule slot not found' });
+        return res.status(404).json({ message: 'Schedule slot not found' });
       }
-
+  
       if (schedule.learnerId.toString() !== (req.user.id || req.user._id).toString()) {
-          return res.status(403).json({ message: 'Forbidden: Bạn không có quyền cập nhật lịch trình này.' });
+        return res.status(403).json({ message: 'Forbidden: Bạn không có quyền cập nhật lịch trình này.' });
       }
-
-      const now = new Date(); // Thời gian hiện tại của server (UTC)
-
+  
+      // ✅ Load booking để kiểm tra trạng thái hoàn thành
+      const booking = await Booking.findById(schedule.bookingId);
+      if (!booking) {
+        return res.status(404).json({ message: 'Booking không tồn tại.' });
+      }
+  
+      if (booking.completed) {
+        return res.status(400).json({ message: 'Khóa học đã hoàn thành. Không thể điểm danh thêm.' });
+      }
+  
+      // ✅ Kiểm tra nếu buổi học chưa bắt đầu thì không cho điểm danh
+      const now = new Date(); // UTC
       const scheduleDatePart = schedule.date.toISOString().split('T')[0];
       const sessionStartTimeUTC = new Date(`${scheduleDatePart}T${schedule.startTime}:00.000Z`);
-
-      // Logic: Chỉ cho phép điểm danh nếu buổi học đã bắt đầu (hoặc đã kết thúc).
-      // Không cho phép điểm danh nếu buổi học chưa bắt đầu.
+  
       if (now.getTime() < sessionStartTimeUTC.getTime()) {
-          return res.status(400).json({ message: 'Không thể điểm danh cho buổi học chưa bắt đầu.' });
+        return res.status(400).json({ message: 'Không thể điểm danh cho buổi học chưa bắt đầu.' });
       }
-
+  
+      // ✅ Cập nhật trạng thái điểm danh
       schedule.attended = attended;
       await schedule.save();
-
-
-
+  
       res.json({ message: 'Điểm danh đã được cập nhật thành công', schedule });
-
-  } catch (error) {
+  
+    } catch (error) {
       console.error("Error marking attendance:", error);
       res.status(500).json({ message: 'Lỗi server khi cập nhật điểm danh.' });
-  }
-};
+    }
+  };
