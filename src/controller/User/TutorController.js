@@ -158,7 +158,7 @@ exports.removeSavedTutor = async (req, res) => {
 
 exports.getActiveStatus = async (req, res) => {
   try {
-    const tutor = await Tutor.findOne({ user: req.user._id });
+    const tutor = await Tutor.findOne({ user: req.user.id });
     if (!tutor) {
       return res.status(404).json({ message: 'Tutor not found' });
     }
