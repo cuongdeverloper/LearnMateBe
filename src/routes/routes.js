@@ -177,5 +177,6 @@ routerApi.post('/review', checkAccessToken, ReviewController.createReview);
 routerApi.get('/review/tutor/:tutorId', ReviewController.getReviewsByTutor);
 routerApi.get('/review/course/:courseId', ReviewController.getReviewsByCourse);
 routerApi.post('/user', addUser);
-
+routerApi.get('/tutor/active-status', checkAccessToken, tutorController.getActiveStatus);
+routerApi.put('/tutor/active-status', checkAccessToken, tutorController.updateActiveStatus);
 module.exports = { routerApi };

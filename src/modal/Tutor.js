@@ -8,7 +8,7 @@ const certificationSchema = new mongoose.Schema({
 
 const timeSlotSchema = new mongoose.Schema({
   day: String,
-  slots: [String], 
+  slots: [String],
 }, { _id: false });
 
 const tutorSchema = new mongoose.Schema({
@@ -30,6 +30,8 @@ const tutorSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
+  active: { type: Boolean, default: true },
+
 }, { timestamps: true });
 
 module.exports = mongoose.model('Tutor', tutorSchema);

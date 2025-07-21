@@ -156,3 +156,45 @@ exports.removeSavedTutor = async (req, res) => {
 // GET /api/tutors/by-subjects?subjects=Toán,Lý,Hóa
 
 
+exports.getActiveStatus = async (req, res) => {
+  try {
+    const tutor = await Tutor.findOne({ user: req.user._id });
+    if (!tutor) {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+    return res.status(200).json({ active: tutor.active });
+  } catch (error) {
+    console.error('Error getting tutor active status:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
+/**
+ * PUT /api/tutor/active-status
+ * Cập nhật trạng thái hoạt động của tutor
+ */
+exports.updateActiveStatus = async (req, res) => {
+  const { active } = req.body;
+
+  if (typeof active !== 'boolean') {
+    return res.status(400).json({ message: 'Invalid status value' });
+  }
+
+  try {
+    const tutor = await Tutor.findOneAndUpdate(
+      { user: req.user._id },
+      { active },
+      { new: true }
+    );
+
+    if (!tutor) {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
+
+    return res.status(200).json({ success: true, active: tutor.active });
+  } catch (error) {
+    console.error('Error updating tutor active status:', error);
+    return res.status(500).json({ message: 'Internal Server Error' });
+  }
+};
+
