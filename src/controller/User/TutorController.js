@@ -182,7 +182,7 @@ exports.updateActiveStatus = async (req, res) => {
 
   try {
     const tutor = await Tutor.findOneAndUpdate(
-      { user: req.user._id },
+      { user: req.user.id },
       { active },
       { new: true }
     );
