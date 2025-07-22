@@ -11,7 +11,7 @@ const socketHandler = require('./socket/socket');
 const doLoginWGoogle = require('./controller/social/GoogleController');
 const socketIo = require('socket.io');
 const http = require('http');
-
+const router = require('./routes/tutorRoutes');
 const app = express();
 const port = process.env.PORT || 8888;
 const hostname = process.env.HOST_NAME || 'localhost';
@@ -51,6 +51,8 @@ app.use(cors({
 configViewEngine(app);
 
 app.use('/', routerApi);
+app.use('/api/tutor', router);
+
 app.get("/", (req, res) => {
   res.json("Hello");
 })
