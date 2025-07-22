@@ -5,7 +5,7 @@ const tutorCtrl = require('../controller/Tutor/TutorController');
 
 router.post('/bookings/respond', tutorCtrl.respondBooking);
 router.post('/bookings/cancel', tutorCtrl.cancelBooking);
-router.get('/bookings/pending', tutorCtrl.getPendingBookings);
+router.get('/bookings/pending/:tutorId', tutorCtrl.getPendingBookings);
 
 router.post('/schedule', tutorCtrl.createSchedule);
 router.get('/schedule/:tutorId', tutorCtrl.getSchedule);
