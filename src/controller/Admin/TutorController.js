@@ -146,7 +146,8 @@ const unverifyTutor = async (req, res) => {
 
     // Update user verified status
     await User.findByIdAndUpdate(tutor.user, {
-      verified: false
+      verified: false,
+      role: 'student'
     });
 
     res.status(200).json({

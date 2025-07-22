@@ -166,7 +166,8 @@ const approveApplication = async (req, res) => {
 
     // Update user verified status - cho phép verify bất kỳ user nào
     await User.findByIdAndUpdate(application.tutorId, {
-      verified: true
+      verified: true,
+      role: 'tutor'
     });
 
     res.status(200).json({
