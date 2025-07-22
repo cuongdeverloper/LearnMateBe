@@ -47,13 +47,14 @@ const cancelBooking = async (req, res) => {
 
 const getPendingBookings = async (req, res) => {
   try {
-    const tutorUserId = req.user.id;
+    const tutorUserId = req.params.tutorId; 
 
     const tutor = await Tutor.findOne({ user: tutorUserId });
 
     if (!tutor) {
       return res.status(404).json({ message: 'Tutor not found' });
     }
+
     const bookings = await Booking.find({
       tutorId: tutor._id,
       status: 'pending'
@@ -65,6 +66,7 @@ const getPendingBookings = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 
 // Create schedule
