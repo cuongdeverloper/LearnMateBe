@@ -2,6 +2,7 @@ const Booking = require('../../modal/Booking');
 const Schedule = require('../../modal/Schedule');
 const Material = require('../../modal/Material');
 const Progress = require('../../modal/Progress');
+const Tutor = require('../../modal/Tutor');
 
 // Accept or reject booking
 const respondBooking = async (req, res) => {
@@ -44,11 +45,17 @@ const cancelBooking = async (req, res) => {
   res.status(200).json({ message: 'Booking cancelled' });
 };
 
-// Get bookings with status 'pending'
 const getPendingBookings = async (req, res) => {
   try {
+    const tutorUserId = req.user.id;
+
+    const tutor = await Tutor.findOne({ user: tutorUserId });
+
+    if (!tutor) {
+      return res.status(404).json({ message: 'Tutor not found' });
+    }
     const bookings = await Booking.find({
-      tutorId: req.params.tutorId,
+      tutorId: tutor._id,
       status: 'pending'
     }).populate('learnerId', 'username email');
 
@@ -58,6 +65,7 @@ const getPendingBookings = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
 
 // Create schedule
 const createSchedule = async (req, res) => {
