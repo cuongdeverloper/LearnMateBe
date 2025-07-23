@@ -179,4 +179,13 @@ routerApi.get('/review/course/:courseId', ReviewController.getReviewsByCourse);
 routerApi.post('/user', addUser);
 routerApi.get('/tutor/active-status', checkAccessToken, tutorController.getActiveStatus);
 routerApi.put('/tutor/active-status', checkAccessToken, tutorController.updateActiveStatus);
+// Người dùng gửi báo cáo
+routerApi.post('/report/', checkAccessToken, bookingController.createReport);
+
+// Admin lấy tất cả báo cáo
+routerApi.get('/report/', checkAccessToken, bookingController.getAllReports);
+
+// Admin cập nhật trạng thái báo cáo
+routerApi.put('/report/:id/status', checkAccessToken, bookingController.updateReportStatus);
+
 module.exports = { routerApi };

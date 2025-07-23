@@ -9,6 +9,8 @@ const bookingSchema = new mongoose.Schema({
   numberOfSessions: { type: Number, default: 0 },
   note: { type: String, default: '' },
   completed: { type: Boolean, default: false },
+  reported: { type: Boolean, default: false },
+  reportedAt: { type: Date } 
 }, { timestamps: true });
 
 module.exports = mongoose.model('Booking', bookingSchema);

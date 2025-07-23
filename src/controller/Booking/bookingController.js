@@ -289,3 +289,73 @@ exports.getAllBookingsByTutorId = async (req, res) => {
   }
 };
 
+const Report = require('../../modal/Report');
+exports.createReport = async (req, res) => {
+  const { targetType, targetId, reason } = req.body;
+
+  if (!targetType || !targetId || !reason) {
+    return res.status(400).json({ success: false, message: 'Thiếu dữ liệu báo cáo.' });
+  }
+
+  try {
+    const report = new Report({
+      reporter: req.user.id, // Ensure req.user.id is correctly populated from checkAccessToken
+      targetType,
+      targetId,
+      reason
+    });
+
+    await report.save();
+
+    // --- NEW: Update the associated booking's reported status ---
+    if (targetType === 'booking') { // Only update if the target is indeed a booking
+      await Booking.findByIdAndUpdate(targetId, {
+        reported: true,
+        reportedAt: new Date() // Set the timestamp
+      }, { new: true }); // `new: true` returns the updated document
+    }
+    // --- END NEW ---
+
+    return res.status(200).json({ success: true, message: 'Báo cáo đã được gửi.' });
+  } catch (err) {
+    console.error('Error creating report:', err);
+    return res.status(500).json({ success: false, message: 'Lỗi server khi tạo báo cáo.' });
+  }
+};
+
+// Lấy tất cả báo cáo (dành cho Admin)
+exports.getAllReports = async (req, res) => {
+  try {
+    const reports = await Report.find()
+      .populate('reporter', 'username email')
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, data: reports });
+  } catch (err) {
+    console.error('Error fetching reports:', err);
+    return res.status(500).json({ success: false, message: 'Lỗi server khi lấy danh sách báo cáo.' });
+  }
+};
+
+// Duyệt báo cáo (Admin xử lý)
+exports.updateReportStatus = async (req, res) => {
+  const { id } = req.params;
+  const { status } = req.body;
+
+  if (!['pending', 'reviewed', 'dismissed'].includes(status)) {
+    return res.status(400).json({ success: false, message: 'Trạng thái không hợp lệ.' });
+  }
+
+  try {
+    const report = await Report.findById(id);
+    if (!report) return res.status(404).json({ success: false, message: 'Không tìm thấy báo cáo.' });
+
+    report.status = status;
+    await report.save();
+
+    return res.status(200).json({ success: true, message: 'Cập nhật trạng thái thành công.' });
+  } catch (err) {
+    console.error('Error updating report:', err);
+    return res.status(500).json({ success: false, message: 'Lỗi server khi cập nhật báo cáo.' });
+  }
+}; 
