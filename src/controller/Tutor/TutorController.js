@@ -100,18 +100,18 @@ const createSchedule = async (req, res) => {
   }
 };
 
-// Get tutor's schedule
 const getSchedule = async (req, res) => {
   try {
-    const schedule = await Schedule.find({ tutorId: req.params.tutorId })
-      .populate('learnerId', 'username email'); // Populate learner's username and email
+    const tutorUserId = req.params.tutorId;
+    const tutor = await Tutor.findOne({ user: tutorUserId });
+    const schedule = await Schedule.find({ tutorId: tutor._id })
+      .populate('learnerId', 'username email'); 
     res.status(200).json(schedule);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// Update schedule
 const updateSchedule = async (req, res) => {
   try {
     const updated = await Schedule.findByIdAndUpdate(req.params.id, req.body, { new: true });
