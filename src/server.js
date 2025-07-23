@@ -24,6 +24,7 @@ const io = socketIo(server, {
     credentials: true
   }
 });
+const allowedOrigins = process.env.CLIENT_URL || 'https://learnmate-rust.vercel.app'
 // Configure request body parsing
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -43,7 +44,7 @@ app.use(passport.session()); // Enable passport session support
 
 // Configure CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: allowedOrigins,
   credentials: true,
 }));
 
